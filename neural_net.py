@@ -1,32 +1,38 @@
+"""This module contains the neural net's class."""
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
 
-class Neural_Net(object):
-    def __init__(self):
-        self.input_size = 2
-        self.hidden_size = 3
-        self.output_size = 1
-        self.weights_1_size = lambda _:(self.input_size, self.hidden_size)
-        self.weights_2_size = lambda _:(self.hidden_size, self.output_size)
-        self.input_layer = None
-        self.hidden_layer = None
-        self.output_layer = None
-        self.weights_1 = np.random(weights_1_size)
-        self.weights_2 = np.random(weights_2_size)
+INPUT_SIZE = 2
+HIDDEN_SIZE = 2
+OUTPUT_SIZE = 1
 
-    def feed_forward(self):
-        pass
 
-    def back_propagate(self):
-        pass
+class Neural_Network(object):
+    """An artificial neural network written from scratch to predict XOR logic."""
+    def __init__(self, input_size, hidden_size, output_size):
+        # These are the hyperparameters.
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.output_size = output_size
 
-    def train(self):
-        pass
+        # These are the parameters.
+        self.W1 = np.random.randn(self.input_size, self.hidden_size)
+        self.W2 = np.random.randn(self.hidden_size, self.output_size)
 
-    def test(self):
-        pass
+    @staticmethod
+    def _activate(z):
+        # Return a float calculated using the sigmoid function given a float.
+        # Formula: f(z) = 1 / (1 + e^(-z))
+        return 1 / (1+np.exp(-z))
+        # return activation
 
-    def predict(self):
-        pass
+    def _predict(self, input_vector):
+        # Return a vector as prediction of the given input vector.
+        # Formula: y_hat = f(X W_1) W_2
+        self.z1 = np.dot(self.W1, input_vector)
+        self.a = _activate(z1)
+        self.z2 = np.dot(self.W2, self.a)
+        output_vector = _activate(z2)
+        return output_vector

@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 INPUT_SIZE = 2
 HIDDEN_SIZE = 2
 OUTPUT_SIZE = 1
+LEARNING_RATE = 0.1
 
 
 class Neural_Network(object):
@@ -49,21 +50,51 @@ class Neural_Network(object):
         return model_loss
 
     def _loss_prime(self, input_vector, target_vector):
-        # Return a dictionary of np.array for each set of weights given an input vector and target vector.
+        # Return a dictionary of np.array for each set of weights given an input vector
+        # and target vector.
         # The gradient points "uphill" in the loss function space.
         # Formula: DELTA_2 = -(y-y_hat) * f'(z_2)
         #          dJ/dW_2 = a.T DELTA_2
         #          DELTA_1 = f'(z_1) * (DELTA_2 W_2.T)
         #          dJ/dW_1 = X.T DELTA_1
-        predicted_vector = self._predict(input_vector, target_vector)  # The variables must be populated.
+        
+        # The variables must be populated.
+        predicted_vector = self._predict(input_vector)
         delta2 = -(target_vector-predicted_vector) * self._activate_prime(self.z2)
         # Some transposes of their respective matrices must be used.
-        dJdW2 = np.dot(self.a.T, delta)
+        dJdW2 = np.dot(self.a.T, delta2)
         delta1 = self._activate_prime(self.z1 ) * np.dot(delta2, self.W2.T)
         dJdW1 = np.dot(input_vector.T, delta1)
         gradient = {"dJdW2": dJdW2, "dJdW1": dJdW1}
         return gradient
 
+    def _update_model(self, input_matrix, target_vector, learning_rate):
+        # Return a float for the loss of the model given an input matrix,
+        # target vector and a float for the learning rate.
+        gradient = self._loss_prime(input_matrix, target_vector)
+        self.W1 -= learning_rate*gradient["dJdW1"]
+        self.W2 -= learning_rate*gradient["dJdW2"]
+        predicted_vector = self._predict(input_matrix)
+        model_loss = self._loss(predicted_vector, target_vector)
+        return model_loss
+
+    def train(self, training_input, target_vector, learning_rate, epoch_size=100, verbose=False):
+        """Iterate through epoch_size number of times, updating the model each time.
+        An int for epoch_size (default is 10), an np.array for training_input, an np.array for target_vector,
+        and a float for learning_rate must be given. If verbose is True,
+        print out the current epoch and loss."""
+        for epoch in range(epoch_size):
+            model_loss = self._update_model(training_input, target_vector, learning_rate)
+            if verbose:
+                print("{epoch}: {loss}".format(epoch=epoch, loss=model_loss))
+
+    def randomize_parameters(self):
+        """Set weights to a random state."""
+        self.W1 = np.random.randn(self.input_size, self.hidden_size)
+        self.W2 = np.random.randn(self.hidden_size, self.output_size)        
+
 
 if __name__ == "__main__":
     nn = Neural_Network(INPUT_SIZE, HIDDEN_SIZE, OUTPUT_SIZE)
+    training_input = np.array([[0, 0, 1, 1], [0, 1, 0, 1]]).T
+    target_vector = np.array([[0, 1, 1, 0]]).T

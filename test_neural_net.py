@@ -24,3 +24,18 @@ def test_predict():
     for item in ouput_vector:
         assert isinstance(item, float)
         assert (item <= 1.) and (item >= 0.)
+
+def test_loss():
+    predicted_vector, target_vector = np.array([0.5, 0.5]), np.array([0.5, 0.5])
+    model_loss = NN._loss(NN, predicted_vector, target_vector)
+    
+    assert isinstance(model_loss, float)
+    assert model_loss == 0.
+
+def test_activate_prime():
+    z_0, z_1, z_neg1 = 0., 0.1, -0.1
+    result_0 = NN._activate_prime(z_0)
+    result_1 = NN._activate_prime(z_1)
+    result_neg1 = NN._activate_prime(z_neg1)
+    assert isinstance(result_0, float)
+    assert (result_0 > result_1) and (result_0 > result_neg1)

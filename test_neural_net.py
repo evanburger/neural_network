@@ -39,3 +39,10 @@ def test_activate_prime():
     result_neg1 = NN._activate_prime(z_neg1)
     assert isinstance(result_0, float)
     assert (result_0 > result_1) and (result_0 > result_neg1)
+
+def test_loss_prime():
+    input_vector = np.array([0, 1])
+    target_vector = 1.
+    result = NN._loss_prime(NN, input_vector, target_vector)
+    assert isinstance(result, float)
+    assert (result <= 1.) and (result >= 0.)

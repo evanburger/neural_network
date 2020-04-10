@@ -31,8 +31,8 @@ class Neural_Network(object):
     def _predict(self, input_vector):
         # Return a vector as prediction of the given input vector.
         # Formula: y_hat = f(X W_1) W_2
-        self.z1 = np.dot(self.W1, input_vector)
-        self.a = _activate(z1)
-        self.z2 = np.dot(self.W2, self.a)
-        output_vector = _activate(z2)
+        self.z1 = np.dot(input_vector, input_vector)
+        self.a = self._activate(self.z1)
+        self.z2 = np.dot(self.a, self.W2)
+        output_vector = self._activate(self.z2)
         return output_vector

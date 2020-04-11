@@ -75,10 +75,10 @@ class Neural_Network(object):
         output_vector = self._activate(self.z2)
         return output_vector
 
-    def train(self, training_input, target_vector, learning_rate, epoch_size=100, verbose=False):
+    def train(self, training_input, target_vector, learning_rate=0.1, epoch_size=1000, verbose=False):
         """Iterate through epoch_size number of times, updating the model each time.
-        An int for epoch_size (default is 10), an np.array for training_input, an np.array for target_vector,
-        and a float for learning_rate must be given. If verbose is True,
+        An int for epoch_size (default is 100), an np.array for training_input, an np.array for target_vector,
+        and a float for learning_rate (default is 0.1) must be given. If verbose is True,
         print out the current epoch and loss."""
         for epoch in range(epoch_size):
             model_loss = self._update_model(training_input, target_vector, learning_rate)

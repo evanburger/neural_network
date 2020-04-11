@@ -75,17 +75,33 @@ class Neural_Network(object):
         output_vector = self._activate(self.z2)
         return output_vector
 
-    def train(self, training_input, target_vector, learning_rate=0.1, epoch_size=1000, verbose=False):
+    def train(self, training_input, target_vector, learning_rate=0.1, epochs=1000, verbose=False, accuracy=False):
         """Iterate through epoch_size number of times, updating the model each time.
         An int for epoch_size (default is 100), an np.array for training_input, an np.array for target_vector,
         and a float for learning_rate (default is 0.1) must be given. If verbose is True,
         print out the current epoch and loss."""
+        # This is to account to make the model loss the average amount.
+        loss_multiple = target_vector.shape[0] / 2
         for epoch in range(epoch_size):
-            model_loss = self._update_model(training_input, target_vector, learning_rate)
+            model_loss = self._update_model(training_input, target_vector, learning_rate) / loss_multiple
             if verbose:
+                if accuracy:
+                    model_loss = (1-model_loss) * 100
                 print("{epoch}: {loss}".format(epoch=epoch, loss=model_loss))
 
-    def randomize_parameters(self):
+    def randomize(self):
         """Set weights to a random state."""
         self.W1 = np.random.randn(self.input_size, self.hidden_size)
         self.W2 = np.random.randn(self.hidden_size, self.output_size)        
+
+    def test(self, testing_input, target_vector, accuracy=False):
+        """Return a float for the error of the network given a matrix
+        for the testing_input and a vector for the target_vector."""
+        # This is to account to make the model loss the average amount.
+        loss_multiple = target_vector.shape[0] / 2
+        predicted_vector = self.predict(testing_input)
+        if accuracy:
+            return (1-(self._loss(predicted_vector, target_vector) / loss_multiple)) * 100
+        return self._loss(predicted_vector, target_vector) / loss_multiple
+
+if __name__ == "__main__":

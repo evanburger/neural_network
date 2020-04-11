@@ -1,0 +1,7 @@
+Neural Network Implementation from Scratch
+
+I've always wanted to build a working ANN from the ground up (the ground being Numpy in this case). It can be used by importing the class and instantiating from it. Then you can train it and use it to make predictions.
+
+"sigmoid" is used for sigmoid activation and "relu" is used for leaky ReLU.
+
+@Evan Mildenberger

@@ -3,33 +3,68 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
+RELU_ALPHA = 0.1
 
 class Neural_Network(object):
     """An artificial neural network written from scratch.
     
     It has only 1 hidden layer.
     """
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, input_size, hidden_size, output_size, activation="sigmoid"):
         # These are the hyperparameters.
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.output_size = output_size
+        self.activation = activation
 
         # These are the parameters.
         self.W1 = np.random.randn(self.input_size, self.hidden_size)
         self.W2 = np.random.randn(self.hidden_size, self.output_size)
 
     @staticmethod
-    def _activate(z):
+    def _sigmoid(z):
         # Return a float calculated using the sigmoid function given a float.
         # Formula: f(z) = 1 / (1 + e^(-z))
         return 1 / (1+np.exp(-z))
 
     @staticmethod
-    def _activate_prime(z):
+    def _relu(z):
+        # Return a float calculated using the sigmoid function given a float.
+        # This uses the leaky ReLU.
+        # Formula: f(z) = max(0, z)
+        return np.where(z>0, z, z*RELU_ALPHA)
+
+    @staticmethod
+    def _relu_prime(z):
+        # Return a float calculated using the sigmoid function given a float.
+        # This uses the leaky ReLU.
+        z[z>0] = 1
+        z[z<=0] = RELU_ALPHA
+        return z
+
+    @staticmethod
+    def _sigmoid_prime(z):
         # Return a float calculated using the derivative of the sigmoid function given a float.
         # Formula: f'(z) = e^(-z) / (1 + e^(-z))^2
         return (np.exp(-z)) / (1+np.exp(-z))**2
+
+    def _activate(self, z):
+        # Return a float calculated using the function determined by self.activation given a float.
+        if self.activation == "sigmoid":
+            return self._sigmoid(z)
+        elif self.activation == "relu":
+            return self._relu(z)
+        else:
+            return ValueError
+
+    def _activate_prime(self, z):
+        # Return a float calculated using the function determined by self.activation given a float.
+        if self.activation == "sigmoid":
+            return self._sigmoid_prime(z)
+        elif self.activation == "relu":
+            return self._relu_prime(z)
+        else:
+            return ValueError
 
     def _loss(self, predicted_vector, target_vector):
         # Return a float for the loss of the model given a predicted vector and a target vector.
@@ -76,13 +111,13 @@ class Neural_Network(object):
         return output_vector
 
     def train(self, training_input, target_vector, learning_rate=0.1, epochs=1000, verbose=False, accuracy=False):
-        """Iterate through epoch_size number of times, updating the model each time.
-        An int for epoch_size (default is 100), an np.array for training_input, an np.array for target_vector,
+        """Iterate through epochs number of times, updating the model each time.
+        An int for epochs (default is 100), an np.array for training_input, an np.array for target_vector,
         and a float for learning_rate (default is 0.1) must be given. If verbose is True,
         print out the current epoch and loss."""
         # This is to account to make the model loss the average amount.
         loss_multiple = target_vector.shape[0] / 2
-        for epoch in range(epoch_size):
+        for epoch in range(epochs):
             model_loss = self._update_model(training_input, target_vector, learning_rate) / loss_multiple
             if verbose:
                 if accuracy:
@@ -103,5 +138,3 @@ class Neural_Network(object):
         if accuracy:
             return (1-(self._loss(predicted_vector, target_vector) / loss_multiple)) * 100
         return self._loss(predicted_vector, target_vector) / loss_multiple
-
-if __name__ == "__main__":

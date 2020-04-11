@@ -4,14 +4,11 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 
-INPUT_SIZE = 2
-HIDDEN_SIZE = 2
-OUTPUT_SIZE = 1
-LEARNING_RATE = 0.1
-
-
 class Neural_Network(object):
-    """An artificial neural network written from scratch to predict XOR logic."""
+    """An artificial neural network written from scratch.
+    
+    It has only 1 hidden layer.
+    """
     def __init__(self, input_size, hidden_size, output_size):
         # These are the hyperparameters.
         self.input_size = input_size
@@ -34,15 +31,6 @@ class Neural_Network(object):
         # Formula: f'(z) = e^(-z) / (1 + e^(-z))^2
         return (np.exp(-z)) / (1+np.exp(-z))**2
 
-    def _predict(self, input_vector):
-        # Return a vector as prediction of the given input vector.
-        # Formula: y_hat = f(X W_1) W_2
-        self.z1 = np.dot(input_vector, self.W1)
-        self.a = self._activate(self.z1)
-        self.z2 = np.dot(self.a, self.W2)
-        output_vector = self._activate(self.z2)
-        return output_vector
-
     def _loss(self, predicted_vector, target_vector):
         # Return a float for the loss of the model given a predicted vector and a target vector.
         # Formula: J = SIGMA 1/2 (y - y_hat)^2
@@ -59,7 +47,7 @@ class Neural_Network(object):
         #          dJ/dW_1 = X.T DELTA_1
         
         # The variables must be populated.
-        predicted_vector = self._predict(input_vector)
+        predicted_vector = self.predict(input_vector)
         delta2 = -(target_vector-predicted_vector) * self._activate_prime(self.z2)
         # Some transposes of their respective matrices must be used.
         dJdW2 = np.dot(self.a.T, delta2)
@@ -74,9 +62,18 @@ class Neural_Network(object):
         gradient = self._loss_prime(input_matrix, target_vector)
         self.W1 -= learning_rate*gradient["dJdW1"]
         self.W2 -= learning_rate*gradient["dJdW2"]
-        predicted_vector = self._predict(input_matrix)
+        predicted_vector = self.predict(input_matrix)
         model_loss = self._loss(predicted_vector, target_vector)
         return model_loss
+
+    def predict(self, input_vector):
+        # Return a vector as prediction of the given input vector.
+        # Formula: y_hat = f(X W_1) W_2
+        self.z1 = np.dot(input_vector, self.W1)
+        self.a = self._activate(self.z1)
+        self.z2 = np.dot(self.a, self.W2)
+        output_vector = self._activate(self.z2)
+        return output_vector
 
     def train(self, training_input, target_vector, learning_rate, epoch_size=100, verbose=False):
         """Iterate through epoch_size number of times, updating the model each time.
@@ -92,9 +89,3 @@ class Neural_Network(object):
         """Set weights to a random state."""
         self.W1 = np.random.randn(self.input_size, self.hidden_size)
         self.W2 = np.random.randn(self.hidden_size, self.output_size)        
-
-
-if __name__ == "__main__":
-    nn = Neural_Network(INPUT_SIZE, HIDDEN_SIZE, OUTPUT_SIZE)
-    training_input = np.array([[0, 0, 1, 1], [0, 1, 0, 1]]).T
-    target_vector = np.array([[0, 1, 1, 0]]).T

@@ -119,15 +119,30 @@ def store_data(db_filename, table, total_size, batch_size):
         data_gen = read_file("mnist_data/{}".format(table), batch_size, offset)
         write_to_db(db_filename, table, data_gen)
 
-def ravel(nested_data):
-    # Return a Numpy view of an array with the outermost dimension flattened given the unflattened Numpy array.
-    return (np.ravel(nested_datum) for nested_datum in nested_data)
+def convert_1D_to_10D(vector_1D):
+    i = vector_1D[0]
+    vector_10D = np.zeros(10)
+    vector_10D[i] = 1
+    return vector_10D
+
+def convert_10D_to_int(vector_10D):
+    return list(vector_10D).index(max(vector_10D))
+
 
 if __name__ == "__main__":
     create_table(DB_FILEPATH)
     for table, total_size in DATA_FILES:
         store_data(DB_FILEPATH, table, total_size, BATCH_SIZE)
-    testing_y = retrieve_data(DB_FILEPATH, "testing_labels", 0, BATCH_SIZE)
-    testing_x_nested = retrieve_data(DB_FILEPATH, "testing_examples", 0, BATCH_SIZE)
-    testing_x = ravel(testing_x_nested)
-    nn = create_network((INPUT_SIZE, HIDDEN_SIZE, OUTPUT_SIZE))
+    testing_y = get_shaped_array(
+            retrieve_data(DB_FILEPATH, "testing_labels", 0, BATCH_SIZE),
+            (BATCH_SIZE, 1)
+    )
+    testing_x = get_shaped_array(
+            retrieve_data(DB_FILEPATH, "testing_examples", 0, BATCH_SIZE),
+            (BATCH_SIZE, 28, 28)
+    )
+    # The input matrices must be flattened to vectors and scaled to be between 0 and 1.
+    x = np.array([np.ravel(x) for x in testing_x]) / 255
+    y = np.array([convert_1D_to_10D(y) for y in testing_y])
+
+    nn = create_network((INPUT_SIZE, HIDDEN_SIZE, OUTPUT_SIZE), activation="relu")

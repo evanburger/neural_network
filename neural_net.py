@@ -10,16 +10,23 @@ class Neural_Network(object):
     
     It has only 1 hidden layer.
     """
-    def __init__(self, input_size, hidden_size, output_size, activation="sigmoid"):
+    def __init__(self, input_size, hidden_size, output_size, activation="relu"):
         # These are the hyperparameters.
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.activation = activation
 
-        # These are the parameters.
-        self.W1 = np.random.randn(self.input_size, self.hidden_size)
-        self.W2 = np.random.randn(self.hidden_size, self.output_size)
+        # Randomly set the parameters.
+        self.randomize()
+
+    @staticmethod
+    def _he_var(fan_in):
+        return np.sqrt(2/fan_in)
+
+    @staticmethod
+    def _kaiming_var(fan_in):
+        return np.sqrt(2/fan_in)
 
     @staticmethod
     def _sigmoid(z):
@@ -47,6 +54,14 @@ class Neural_Network(object):
         # Return a float calculated using the derivative of the sigmoid function given a float.
         # Formula: f'(z) = e^(-z) / (1 + e^(-z))^2
         return (np.exp(-z)) / (1+np.exp(-z))**2
+
+    def _scale_weights(self, fan_in):
+        if self.activation == "sigmoid":
+            return self._kaiming_var(fan_in)
+        elif self.activation == "relu":
+            return self._he_var(fan_in)
+        else:
+            return ValueError
 
     def _activate(self, z):
         # Return a float calculated using the function determined by self.activation given a float.
@@ -83,9 +98,15 @@ class Neural_Network(object):
         
         # The variables must be populated.
         predicted_vector = self.predict(input_vector)
+        if self.activation == "sigmoid":
+            # The gradient should be clipped to avoid floating point overflow errors.
+            self.z2 = np.clip(self.z2)
         delta2 = -(target_vector-predicted_vector) * self._activate_prime(self.z2)
         # Some transposes of their respective matrices must be used.
         dJdW2 = np.dot(self.a.T, delta2)
+        if self.activation == "sigmoid":
+            # The gradient should be clipped to avoid floating point overflow errors.
+            self.z1 = np.clip(self.z1)
         delta1 = self._activate_prime(self.z1 ) * np.dot(delta2, self.W2.T)
         dJdW1 = np.dot(input_vector.T, delta1)
         gradient = {"dJdW2": dJdW2, "dJdW1": dJdW1}
@@ -126,8 +147,8 @@ class Neural_Network(object):
 
     def randomize(self):
         """Set weights to a random state."""
-        self.W1 = np.random.randn(self.input_size, self.hidden_size)
-        self.W2 = np.random.randn(self.hidden_size, self.output_size)        
+        self.W1 = np.random.randn(self.input_size, self.hidden_size) * self._scale_weights(self.input_size)
+        self.W2 = np.random.randn(self.hidden_size, self.output_size) * self._scale_weights(self.hidden_size)
 
     def test(self, testing_input, target_vector, accuracy=False):
         """Return a float for the error of the network given a matrix

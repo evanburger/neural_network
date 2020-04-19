@@ -55,6 +55,10 @@ class Neural_Network(object):
         # Formula: f'(z) = e^(-z) / (1 + e^(-z))^2
         return (np.exp(-z)) / (1+np.exp(-z))**2
 
+    @staticmethod
+    def _convert_10D_to_int(vector_10D):
+        return list(vector_10D).index(max(vector_10D))
+
     def _scale_weights(self, fan_in):
         if self.activation == "sigmoid":
             return self._kaiming_var(fan_in)
@@ -131,7 +135,7 @@ class Neural_Network(object):
         output_vector = self._activate(self.z2)
         return output_vector
 
-    def train(self, training_input, target_vector, learning_rate=0.1, epochs=1000, verbose=False, accuracy=False):
+    def train(self, training_input, target_vector, validation=None, learning_rate=0.1, epochs=1000, verbose=False, accuracy=False):
         """Iterate through epochs number of times, updating the model each time.
         An int for epochs (default is 100), an np.array for training_input, an np.array for target_vector,
         and a float for learning_rate (default is 0.1) must be given. If verbose is True,
@@ -150,12 +154,14 @@ class Neural_Network(object):
         self.W1 = np.random.randn(self.input_size, self.hidden_size) * self._scale_weights(self.input_size)
         self.W2 = np.random.randn(self.hidden_size, self.output_size) * self._scale_weights(self.hidden_size)
 
-    def test(self, testing_input, target_vector, accuracy=False):
+    def test(self, testing_input, target_vector):
         """Return a float for the error of the network given a matrix
         for the testing_input and a vector for the target_vector."""
-        # This is to account to make the model loss the average amount.
-        loss_multiple = target_vector.shape[0] / 2
-        predicted_vector = self.predict(testing_input)
-        if accuracy:
-            return (1-(self._loss(predicted_vector, target_vector) / loss_multiple)) * 100
-        return self._loss(predicted_vector, target_vector) / loss_multiple
+        accuracy = 0
+        amount = len(testing_input)
+        for i in range(amount):
+            y_hat = self._convert_10D_to_int(self.predict(testing_input[i]))
+            y = self._convert_10D_to_int(target_vector[i])
+            if y_hat == y:
+                accuracy += 1
+        return accuracy / amount

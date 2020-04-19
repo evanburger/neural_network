@@ -135,19 +135,27 @@ class Neural_Network(object):
         output_vector = self._activate(self.z2)
         return output_vector
 
-    def train(self, training_input, target_vector, validation=None, learning_rate=0.1, epochs=1000, verbose=False, accuracy=False):
+    def train(self, training_input, target_vector, validation=None, batch_size=None, learning_rate=0.1, epochs=1000, verbose=False,):
         """Iterate through epochs number of times, updating the model each time.
         An int for epochs (default is 100), an np.array for training_input, an np.array for target_vector,
         and a float for learning_rate (default is 0.1) must be given. If verbose is True,
         print out the current epoch and loss."""
-        # This is to account to make the model loss the average amount.
-        loss_multiple = target_vector.shape[0] / 2
+        if batch_size is None:
+            batch_size = len(training_input)
+            iterations = 1
+        iterations = int(len(training_input) / batch_size)
+
         for epoch in range(epochs):
-            model_loss = self._update_model(training_input, target_vector, learning_rate) / loss_multiple
+            print(f"Epoch {epoch}")
+            for iteration in range(iterations):
+                batch_x = training_input[iteration*batch_size:(iteration+1)*batch_size]
+                batch_y = target_vector[iteration*batch_size:(iteration+1)*batch_size]
+                model_loss = self._update_model(batch_x, batch_y, learning_rate) / len(batch_x) * 2
+                if verbose:
+                    print(f"{iteration}: {model_loss}")
+            testing_result = self.test(training_input, target_vector)
             if verbose:
-                if accuracy:
-                    model_loss = (1-model_loss) * 100
-                print("{epoch}: {loss}".format(epoch=epoch, loss=model_loss))
+                print(f"Accuracy: {testing_result}")
 
     def randomize(self):
         """Set weights to a random state."""
@@ -165,3 +173,7 @@ class Neural_Network(object):
             if y_hat == y:
                 accuracy += 1
         return accuracy / amount
+
+    def set_weights(self, weights_tuple):
+        self.W1 = weights_tuple[0].copy()
+        self.W2 = weights_tuple[1].copy()

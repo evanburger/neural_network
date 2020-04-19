@@ -8,13 +8,14 @@ from mnist_reader import read_file
 from neural_net import Neural_Network as NN
 
 DB_FILEPATH = "mnist_data/mnist_data.db"
-HIDDEN_SIZE = 400
-INPUT_SIZE = 28**2
+HIDDEN_SIZE = 28
+INPUT_SIZE = 784
 OUTPUT_SIZE = 10
 
 TRAINING_SIZE = 60_000
+VALIDATION_SIZE = 10_000
 TESTING_SIZE = 10_000
-BATCH_SIZE = 1_000
+BATCH_SIZE = 100 # Use all examples.
 
 DATA_FILES = (
             ("testing_labels", TESTING_SIZE),
@@ -22,7 +23,6 @@ DATA_FILES = (
             ("testing_examples", TESTING_SIZE),
             ("training_examples", TRAINING_SIZE),
 )
-
 
 def log(function):
     # Provide logging functionality.
@@ -36,7 +36,6 @@ def log(function):
         return result
     return wrapper
 
-@log
 def create_table(filename):
     # Create a sqlite database given a filename string.
     conn = sqlite3.connect(filename)
@@ -58,12 +57,10 @@ def create_table(filename):
     finally:
         conn.close()
 
-@log
 def serialize(data_gen):
     # Yield a tuple of pickled data given a generator of data.
     return map(lambda x: (pickle.dumps(x),), data_gen)
 
-@log
 def write_to_db(filename, table, data_gen):
     # Write the items of a given generator of data, given a filename string and table name string.
     # data must be an iterable.
@@ -77,23 +74,19 @@ def write_to_db(filename, table, data_gen):
     finally:
         c.close()
 
-@log
-def create_network(layer_sizes=(2,2,1), activation="sigmoid"):
+def create_network(layer_sizes=(2,2,1), activation="relu"):
     # Return a Neural_Network instance with the hyperparameters given for layer sizes (tuple)
     # and activation function (string).
     return NN(layer_sizes[0], layer_sizes[1], layer_sizes[2], activation)
 
-@log
 def get_shaped_array(data_tuple, shape_tuple):
     # Return a numpy Array given the tuple data_tuple in the shape given the tuple shape_tuple.
     return np.array(data_tuple).reshape(shape_tuple)
 
-@log
 def deserialize(pickled_data_list):
     # Return a tuple of the data unpickled given the pickled data list of byte strings.
     return tuple(map(lambda x: pickle.loads(x[0]), pickled_data_list))
 
-@log
 def retrieve_data(db_filename, table, offset, limit):
     # Return a tuple of the data from the database specified by the string db_filename and the string table
     # starting at row given by the int offset. The given int limit determines the amount of rows to return.
@@ -108,7 +101,6 @@ def retrieve_data(db_filename, table, offset, limit):
     finally:
         c.close()
 
-@log
 def store_data(db_filename, table, total_size, batch_size):
     # Read from the mnist data file and store it to the database by given string db_filename and string table.
     # The int total_size determines how many rows to read and store,
@@ -119,30 +111,50 @@ def store_data(db_filename, table, total_size, batch_size):
         data_gen = read_file("mnist_data/{}".format(table), batch_size, offset)
         write_to_db(db_filename, table, data_gen)
 
-def convert_1D_to_10D(vector_1D):
-    i = vector_1D[0]
+def convert_int_to_10D(integer):
     vector_10D = np.zeros(10)
-    vector_10D[i] = 1
+    vector_10D[integer] = 1
     return vector_10D
 
 def convert_10D_to_int(vector_10D):
     return list(vector_10D).index(max(vector_10D))
 
+def predict_for_set(x, y, amount=10):
+        a = 0
+        for i in range(amount):
+            y_hat = convert_10D_to_int(nn.predict(x[i]))
+            y = convert_10D_to_int(y[i])
+            print(f"#{i}: y_hat={y_hat},y={y}")
+            if y_hat == y:
+                a += 1
+        print(f"Accuracy: {a}/{amount}={a/amount}")
+
 
 if __name__ == "__main__":
-    create_table(DB_FILEPATH)
-    for table, total_size in DATA_FILES:
-        store_data(DB_FILEPATH, table, total_size, BATCH_SIZE)
-    testing_y = get_shaped_array(
-            retrieve_data(DB_FILEPATH, "testing_labels", 0, BATCH_SIZE),
-            (BATCH_SIZE, 1)
-    )
-    testing_x = get_shaped_array(
-            retrieve_data(DB_FILEPATH, "testing_examples", 0, BATCH_SIZE),
-            (BATCH_SIZE, 28, 28)
-    )
-    # The input matrices must be flattened to vectors and scaled to be between 0 and 1.
-    x = np.array([np.ravel(x) for x in testing_x]) / 255
-    y = np.array([convert_1D_to_10D(y) for y in testing_y])
+    # create_table(DB_FILEPATH)
+    # for table, total_size in DATA_FILES:
+    #     store_data(DB_FILEPATH, table, total_size, BATCH_SIZE)
+
+    start_time = time.perf_counter()
+    x = read_file("mnist_data/training_examples", TRAINING_SIZE, 0)
+    y = read_file("mnist_data/training_labels", TRAINING_SIZE, 0)
+    print(f"Training data read in {time.perf_counter()-start_time} seconds")
+    start_time = time.perf_counter()
+    testing_x = read_file("mnist_data/testing_examples", TESTING_SIZE, 0)
+    testing_y = read_file("mnist_data/testing_labels", TESTING_SIZE, 0)
+    print(f"Testing data read in {time.perf_counter()-start_time} seconds")
+    # The input vectors must scaled to be between 0 and 1.
+    x = np.array(x) / 255
+    # The labels must be converted to 1-hot encoding.
+    y = np.array([convert_int_to_10D(i) for i in y])
 
     nn = create_network((INPUT_SIZE, HIDDEN_SIZE, OUTPUT_SIZE), activation="relu")
+
+    result = nn.test(x, y)
+    print(f"Testing: {result}")
+    W = nn.W1.copy(), nn.W2.copy()
+
+    nn.train(x, y, learning_rate=1e-6, epochs=1, verbose=True)
+
+    result = nn.test(x, y)
+    print(f"Testing: {result}")

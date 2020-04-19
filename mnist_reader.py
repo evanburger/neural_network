@@ -14,25 +14,27 @@ def _to_int(byte_string, is_signed=False):
         return byte_string
 
 def _read_labels(byte_string, chunks, offset):
-    # Return a generator of ints (0 through 9) given a byte string, an int and another int.
+    # Return a list of ints (0 through 9) given a byte string, an int for chunks and another int for offset.
     end_index = offset + chunks
-    return (_to_int(byte_string[i]) for i in range(offset, end_index))
+    return [_to_int(byte_string[i]) for i in range(offset, end_index)]
 
 def _read_images(byte_string, chunks, offset):
-    # Return a generator of chunks length of a 28 by 28 nested list given a byte string
-    # and an int and another int.
+    # Return a chunks long list of list of ints given a byte string and an int chunks and an int offset.
     rows = _to_int(byte_string[:4])
     columns = _to_int(byte_string[4:8])
     # The rows and columns of the images should be 28.
     if rows != 28 or columns != 28:
         return ValueError
+    image_size = rows * columns
+    start_pixel = offset * image_size
+    end_pixel = start_pixel + image_size * chunks
+
     # Remove the first 8 bytes as they are only meta data for the dimensions.
     byte_string = byte_string[8:]
     # Convert the necessary number of pixel bytes into ints.
-    int_list = [byte_string[i] for i in range(chunks*rows*columns)]
-    # Convert byte string into a nested list of size (images x rows x columns).
-    images = ([int_list[j:j+columns] for j in range(0, len(int_list), columns)][i:i+rows] for i in range(offset, chunks*rows, rows))
-    return images
+    int_list = [byte_string[i] for i in range(start_pixel, end_pixel)]
+    flattened_images = [int_list[image_size*i:image_size*(i+1)] for i in range(chunks)]
+    return flattened_images
 
 
 def read_file(filename, chunks=None, offset=0):

@@ -1,9 +1,11 @@
 """This module contains the neural net's class."""
 import numpy as np
-import pandas as pd
-from matplotlib import pyplot as plt
+
 
 RELU_ALPHA = 0.1
+GRAD_LOWER_LIM = -1000
+GRAD_UPPER_LIM = 1000
+
 
 class Neural_Network(object):
     """An artificial neural network written from scratch.
@@ -104,13 +106,13 @@ class Neural_Network(object):
         predicted_vector = self.predict(input_vector)
         if self.activation == "sigmoid":
             # The gradient should be clipped to avoid floating point overflow errors.
-            self.z2 = np.clip(self.z2)
+            self.z2 = np.clip(self.z2, GRAD_LOWER_LIM, GRAD_UPPER_LIM)
         delta2 = -(target_vector-predicted_vector) * self._activate_prime(self.z2)
         # Some transposes of their respective matrices must be used.
         dJdW2 = np.dot(self.a.T, delta2)
         if self.activation == "sigmoid":
             # The gradient should be clipped to avoid floating point overflow errors.
-            self.z1 = np.clip(self.z1)
+            self.z1 = np.clip(self.z1, GRAD_LOWER_LIM, GRAD_UPPER_LIM)
         delta1 = self._activate_prime(self.z1 ) * np.dot(delta2, self.W2.T)
         dJdW1 = np.dot(input_vector.T, delta1)
         gradient = {"dJdW2": dJdW2, "dJdW1": dJdW1}
@@ -127,7 +129,7 @@ class Neural_Network(object):
         return model_loss
 
     def predict(self, input_vector):
-        # Return a vector as prediction of the given input vector.
+        """Return a vector as the prediction of the given input vector."""
         # Formula: y_hat = f(X W_1) W_2
         self.z1 = np.dot(input_vector, self.W1)
         self.a = self._activate(self.z1)
@@ -135,11 +137,17 @@ class Neural_Network(object):
         output_vector = self._activate(self.z2)
         return output_vector
 
-    def train(self, training_input, target_vector, validation=None, batch_size=None, learning_rate=0.1, epochs=1000, verbose=False,):
+    def train(self, training_input, target_vector, validation_size=None, batch_size=None, learning_rate=1e-1, epochs=1, verbose=False,):
         """Iterate through epochs number of times, updating the model each time.
-        An int for epochs (default is 100), an np.array for training_input, an np.array for target_vector,
-        and a float for learning_rate (default is 0.1) must be given. If verbose is True,
-        print out the current epoch and loss."""
+        An int for epochs (default is 1), an np.array for training_input, an np.array for target_vector,
+        and a float for learning_rate (default is 0.1), an int for validation_size
+        and an int for the batch_size must be given. If verbose is True,
+        print out the current epoch and loss.""" 
+        if validation_size is not None:
+            validation_examples, training_input = training_input[:validation_size], training_input[validation_size:]
+            validation_labels, target_vector = target_vector[:validation_size], target_vector[validation_size:]
+            validation_results = [self.test(validation_examples, validation_labels)]
+
         if batch_size is None:
             batch_size = len(training_input)
             iterations = 1
@@ -153,9 +161,21 @@ class Neural_Network(object):
                 model_loss = self._update_model(batch_x, batch_y, learning_rate) / len(batch_x) * 2
                 if verbose:
                     print(f"{iteration}: {model_loss}")
-            testing_result = self.test(training_input, target_vector)
+            if validation_size is not None:
+                testing_result = self.test(validation_examples, validation_labels)
+                validation_results.append(testing_result)
+                # The model should stop training if the last test is worse than the previous one to prevent overfitting.
+                if validation_results[-1] < validation_results[-2]:
+                    return validation_results
+            else:
+                testing_result = self.test(training_input, target_vector)
+                return testing_result
             if verbose:
-                print(f"Accuracy: {testing_result}")
+                if "validation_results" in locals():
+                    print(f"Accuracy history: {validation_results}")
+                else:
+                    print(f"Accuracy: {testing_result}")
+                    return testing_result
 
     def randomize(self):
         """Set weights to a random state."""
@@ -175,5 +195,6 @@ class Neural_Network(object):
         return accuracy / amount
 
     def set_weights(self, weights_tuple):
+        """Set the network's weights given weights as a tuple."""
         self.W1 = weights_tuple[0].copy()
         self.W2 = weights_tuple[1].copy()

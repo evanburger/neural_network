@@ -7,3 +7,4 @@ I've always wanted to build a working ANN from the ground up (the ground being N
 neural_net.py can be used to instantiate a model and train it.
 mnist_reader.py provides functionality to read the IDX format that the MNIST data is traditionally stored in.
 mnist_net.py is a script with functions to speed up the process of reading the IDX data files, storing them to a simple database as well as setting up the network.
+mnist_model_89.p is for a model that was trained up to 89% accuracy. It's a binary file storing a tuple saved by the pickle module. The first two items are the weight layers and the last item is the activation function that was used.

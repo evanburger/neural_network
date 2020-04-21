@@ -15,7 +15,7 @@ OUTPUT_SIZE = 10
 TRAINING_SIZE = 60_000
 VALIDATION_SIZE = 10_000
 TESTING_SIZE = 10_000
-BATCH_SIZE = 100 # Use all examples.
+BATCH_SIZE = 100
 
 DATA_FILES = (
             ("testing_labels", TESTING_SIZE),
@@ -119,21 +119,11 @@ def convert_int_to_10D(integer):
 def convert_10D_to_int(vector_10D):
     return list(vector_10D).index(max(vector_10D))
 
-def predict_for_set(x, y, amount=10):
-        a = 0
-        for i in range(amount):
-            y_hat = convert_10D_to_int(nn.predict(x[i]))
-            y = convert_10D_to_int(y[i])
-            print(f"#{i}: y_hat={y_hat},y={y}")
-            if y_hat == y:
-                a += 1
-        print(f"Accuracy: {a}/{amount}={a/amount}")
-
 
 if __name__ == "__main__":
-    # create_table(DB_FILEPATH)
-    # for table, total_size in DATA_FILES:
-    #     store_data(DB_FILEPATH, table, total_size, BATCH_SIZE)
+    create_table(DB_FILEPATH)
+    for table, total_size in DATA_FILES:
+        store_data(DB_FILEPATH, table, total_size, BATCH_SIZE)
 
     start_time = time.perf_counter()
     x = read_file("mnist_data/training_examples", TRAINING_SIZE, 0)
@@ -143,18 +133,23 @@ if __name__ == "__main__":
     testing_x = read_file("mnist_data/testing_examples", TESTING_SIZE, 0)
     testing_y = read_file("mnist_data/testing_labels", TESTING_SIZE, 0)
     print(f"Testing data read in {time.perf_counter()-start_time} seconds")
+    start_time = time.perf_counter()
     # The input vectors must scaled to be between 0 and 1.
     x = np.array(x) / 255
+    testing_x = np.array(testing_x) / 255
     # The labels must be converted to 1-hot encoding.
     y = np.array([convert_int_to_10D(i) for i in y])
+    testing_y = np.array([convert_int_to_10D(i) for i in testing_y])
+    print(f"Data preprocessed in {time.perf_counter()-start_time} seconds")
 
     nn = create_network((INPUT_SIZE, HIDDEN_SIZE, OUTPUT_SIZE), activation="relu")
 
+    # Test the untrained model as a baseline.
     result = nn.test(x, y)
     print(f"Testing: {result}")
+    # Make a copy of the untrained weights if needed later.
     W = nn.W1.copy(), nn.W2.copy()
 
-    nn.train(x, y, learning_rate=1e-6, epochs=1, verbose=True)
-
-    result = nn.test(x, y)
-    print(f"Testing: {result}")
+    def train():
+        nn.train(x, y, batch_size=BATCH_SIZE, validation_size=VALIDATION_SIZE, learning_rate=1e-6, epochs=1_000, verbose=True)
+    train()
